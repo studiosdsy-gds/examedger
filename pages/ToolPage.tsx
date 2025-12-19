@@ -10,10 +10,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 type PhotoSubTab = 'bg-remover' | 'relight' | 'upscale' | 'editor' | 'face-enhance';
 type PdfSubTab = 'merge' | 'pdf-to-text' | 'img-to-pdf' | 'pdf-to-other' | 'other-to-pdf' | 'compress' | 'text-to-pdf' | 'edit';
 
-const ToolPage: React.FC<{ type: 'photo' | 'pdf' }> = ({ type }) => {
+const ToolPage: React.FC<{ type: 'photo' | 'pdf'; initialFile?: File | null; onFileProcessed?: () => void }> = ({ type, initialFile, onFileProcessed }) => {
   const [file, setFile] = useState<File | null>(null);
   const [photoTab, setPhotoTab] = useState<PhotoSubTab>('editor');
   const [pdfTab, setPdfTab] = useState<PdfSubTab>('merge');
+
+  React.useEffect(() => {
+    if (initialFile) {
+      setFile(initialFile);
+      if (type === 'photo') setPhotoTab('editor');
+      if (onFileProcessed) onFileProcessed();
+    }
+  }, [initialFile, type, onFileProcessed]);
 
   const photoTabs = [
     { id: 'bg-remover', label: 'BG Remover', icon: Layers },
@@ -140,6 +148,8 @@ const ToolPage: React.FC<{ type: 'photo' | 'pdf' }> = ({ type }) => {
 };
 
 const ToolInterface = ({ type, subTab, file, onFileChange }: any) => {
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
+
   if (subTab === 'text-to-pdf') {
     return (
       <div className="flex-1 flex flex-col gap-4">
@@ -168,8 +178,7 @@ const ToolInterface = ({ type, subTab, file, onFileChange }: any) => {
 
   return (
     <div 
-      className="flex-1 border-2 border-dashed border-slate-blue/5 dark:border-slate-blue/10 rounded-xl flex flex-col items-center justify-center p-12 text-center group hover:bg-slate-blue/5 dark:hover:bg-ink/40 hover:border-slate-blue/20 dark:hover:border-denim/20 transition-all cursor-pointer"
-      onClick={() => document.getElementById('tool-upload')?.click()}
+      className="flex-1 border-2 border-dashed border-slate-blue/5 dark:border-slate-blue/10 rounded-xl flex flex-col items-center justify-center p-6 md:p-12 text-center group hover:bg-slate-blue/5 dark:hover:bg-ink/40 hover:border-slate-blue/20 dark:hover:border-denim/20 transition-all cursor-pointer relative"
     >
       <input 
         id="tool-upload" 
@@ -177,6 +186,15 @@ const ToolInterface = ({ type, subTab, file, onFileChange }: any) => {
         className="hidden" 
         onChange={(e) => onFileChange(e.target.files?.[0] || null)} 
       />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => onFileChange(e.target.files?.[0] || null)}
+      />
+      
       {file ? (
         <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
           <div className="size-24 bg-slate-blue/5 dark:bg-ink/60 rounded-2xl flex items-center justify-center mx-auto shadow-sm border border-slate-blue/10 dark:border-slate-blue/20 text-slate-blue dark:text-denim">
@@ -194,15 +212,30 @@ const ToolInterface = ({ type, subTab, file, onFileChange }: any) => {
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="size-16 bg-slate-blue/5 dark:bg-ink rounded-xl flex items-center justify-center mx-auto text-slate-blue/20 dark:text-denim/20 group-hover:text-ink dark:group-hover:text-eggshell transition-colors duration-200">
+        <div className="space-y-6 w-full">
+          <div className="size-16 bg-slate-blue/5 dark:bg-ink rounded-xl flex items-center justify-center mx-auto text-slate-blue/20 dark:text-denim/20 group-hover:text-ink dark:group-hover:text-eggshell transition-colors duration-200" onClick={() => document.getElementById('tool-upload')?.click()}>
             <Upload size={32} strokeWidth={2} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-ink dark:text-eggshell">Drop your {type === 'photo' ? 'Image' : 'PDF'} here</h3>
-            <p className="text-xs text-slate-blue/40 dark:text-denim/40 font-bold mt-1">Maximum file size: 25MB • Local processing only</p>
+            <h3 className="text-lg font-black text-ink dark:text-eggshell hidden md:block">Drop your {type === 'photo' ? 'Image' : 'PDF'} here</h3>
+            <p className="text-xs text-slate-blue/40 dark:text-denim/40 font-bold mt-1 hidden md:block">Maximum file size: 25MB • Local processing only</p>
           </div>
-          <button className="px-8 py-3 bg-slate-blue/5 dark:bg-ink rounded-xl font-black text-xs uppercase tracking-widest group-hover:bg-ink dark:group-hover:bg-eggshell group-hover:text-eggshell dark:group-hover:text-ink transition-all shadow-sm">Browse Files</button>
+          <div className="flex flex-col md:flex-row gap-3 justify-center w-full md:w-auto">
+            <button 
+              onClick={(e) => { e.stopPropagation(); document.getElementById('tool-upload')?.click(); }}
+              className="px-8 py-3 bg-slate-blue/5 dark:bg-ink rounded-xl font-black text-xs uppercase tracking-widest group-hover:bg-ink dark:group-hover:bg-eggshell group-hover:text-eggshell dark:group-hover:text-ink transition-all shadow-sm w-full md:w-auto"
+            >
+              Browse Files
+            </button>
+            {type === 'photo' && (
+              <button
+                onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+                className="px-8 py-3 bg-ink dark:bg-eggshell text-eggshell dark:text-ink rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm w-full md:w-auto md:hidden flex items-center justify-center gap-2"
+              >
+                <Camera size={14} /> Take Photo
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
