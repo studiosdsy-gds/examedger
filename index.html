@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamEdger | Elevate Your Prep</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Michroma&family=Iceland&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'ink': '#000000', // Deep black for background
+              'space': '#121212', // Dark gray for cards
+              'card-hover': '#1a1a1a', // Subtle gray for card hover
+              'slate-blue': '#0ea5e9', // Sky blue for buttons/accents
+              'denim': '#a1a1aa', // Muted gray for secondary text
+              'eggshell': '#ffffff', // Pure white for primary text/light theme
+            },
+            fontFamily: {
+              'display': ['Michroma', 'sans-serif'],
+              'body': ['"Space Grotesk"', 'sans-serif'],
+              'iceland': ['Iceland', 'sans-serif']
+            },
+            borderRadius: {
+              'huge': '1rem'
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Monochromatic scrollbar using palette */
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      .dark ::-webkit-scrollbar-track { background: #000000; }
+      ::-webkit-scrollbar-thumb { 
+        background: #262626; 
+        border-radius: 10px; 
+      }
+      .dark ::-webkit-scrollbar-thumb { background: #333333; }
+      
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        overflow-x: hidden;
+      }
+      #root { height: 100%; }
+      
+      .hover-fast {
+        transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .perspective-1000 { perspective: 1000px; }
+      .backface-hidden { backface-visibility: hidden; }
+      .rotate-y-180 { transform: rotateY(180deg); }
+      
+      /* Subtle text rendering */
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-family: 'Space Grotesk', sans-serif;
+      }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "framer-motion": "https://esm.sh/framer-motion@^12.23.26",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-eggshell dark:bg-ink text-ink dark:text-eggshell transition-colors duration-300">
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
