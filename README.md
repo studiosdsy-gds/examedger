@@ -52,28 +52,7 @@ Preparing for 2026? We've got you covered with updated schedules, notifications,
 *   **Icons**: [Lucide React](https://lucide.dev/)
 *   **Language**: [TypeScript](https://www.typescriptlang.org/)
 
-## 🏁 Getting Started
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/studiosdsy-gds/examedger.git
-    cd examedger
-    ```
-
-2.  **Install dependencies**
-    ```bash
-    npm install
-    ```
-
-3.  **Start the development server**
-    ```bash
-    npm run dev
-    ```
-
-4.  **Build for production**
-    ```bash
-    npm run build
-    ```
 
 ## 📄 License
 
