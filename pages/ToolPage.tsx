@@ -54,7 +54,7 @@ const ToolPage: React.FC<{ type: 'photo' | 'pdf'; initialFile?: File | null; onF
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black tracking-tighter text-ink dark:text-eggshell uppercase">
+          <h2 className="text-4xl font-black tracking-tighter text-ink dark:text-eggshell uppercase notranslate">
             {type === 'photo' ? 'Photo Studio' : 'PDF Toolset'}
           </h2>
           <p className="text-slate-blue dark:text-denim mt-1 font-bold">

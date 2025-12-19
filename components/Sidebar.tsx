@@ -62,8 +62,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside 
-      className={`fixed left-0 top-0 h-screen bg-white dark:bg-black border-r border-slate-blue/10 dark:border-white/5 flex flex-col z-50 text-ink dark:text-eggshell select-none transition-all duration-300 ease-in-out ${isCollapsed ? 'w-20' : 'w-64'}`}
+      className={`fixed left-0 top-0 h-screen bg-white dark:bg-black border-r border-slate-blue/10 dark:border-white/5 flex flex-col z-50 text-ink dark:text-eggshell select-none transition-all duration-300 ease-in-out overflow-hidden ${isCollapsed ? 'w-20' : 'w-64'}`}
     >
+      <div id="google_translate_element" className="hidden"></div>
+      
       {/* Header Area - Branding and Menu Toggle */}
       <div className="flex flex-col pt-6 pb-4 shrink-0">
         <div className="flex items-center">
@@ -80,7 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
-                className="text-base font-display tracking-tight uppercase leading-none truncate whitespace-nowrap"
+                className="text-base font-display tracking-tight uppercase leading-none truncate whitespace-nowrap notranslate"
               >
                 ExamEdger <span className="text-slate-blue font-iceland">IN</span>
               </motion.h1>
@@ -189,11 +191,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
 
-      {/* Footer Area - Aligned identically per screenshot */}
+      {/* Footer Area */}
       <div className="pb-6 space-y-3 mt-auto border-t border-slate-blue/5 dark:border-white/5 bg-slate-blue/[0.01] dark:bg-white/[0.02] pt-4 shrink-0">
         
         {/* User Info Row */}
-        <div className="flex items-center">
+        <div className="flex items-center h-10">
           <div className={`${ICON_TRACK_WIDTH} flex items-center justify-center shrink-0`}>
             <div className="size-9 rounded-full bg-slate-blue/5 dark:bg-white/5 flex items-center justify-center border border-slate-blue/10 dark:border-white/10">
               <User size={16} strokeWidth={2} className="text-slate-blue dark:text-denim" />
@@ -219,7 +221,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Login Pill Row */}
-        <div className="flex items-center h-10">
+        <div className="flex items-center h-10 w-full overflow-hidden">
           <div className={`${ICON_TRACK_WIDTH} flex items-center justify-center shrink-0`}>
              <button 
               onClick={onLoginToggle}
@@ -252,7 +254,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Theme Row */}
-        <div className="flex items-center">
+        <div className="flex items-center h-10">
           <div className={`${ICON_TRACK_WIDTH} flex items-center justify-center shrink-0`}>
             <button 
               onClick={toggleTheme}
@@ -279,31 +281,85 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Language Row */}
-        <div className="flex items-center">
-          <div className={`${ICON_TRACK_WIDTH} flex items-center justify-center shrink-0`}>
-            <button 
-              onClick={() => setLangOpen(!langOpen)}
-              className={`size-9 flex items-center justify-center rounded-lg transition-all border ${
-                langOpen 
-                ? 'bg-slate-blue/10 dark:bg-white/10 border-slate-blue/40 dark:border-white/40 text-ink dark:text-eggshell shadow-lg' 
-                : 'bg-slate-blue/5 dark:bg-white/5 border-slate-blue/10 dark:border-white/10 text-slate-blue dark:text-denim hover:text-ink dark:hover:text-eggshell'
-              }`}
-            >
-              <Languages size={16} strokeWidth={2.5} />
-            </button>
-          </div>
-          <AnimatePresence>
-            {!isCollapsed && (
-              <motion.button 
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -5 }}
+        <div className="relative">
+          <div className="flex items-center h-10">
+            <div className={`${ICON_TRACK_WIDTH} flex items-center justify-center shrink-0`}>
+              <button 
                 onClick={() => setLangOpen(!langOpen)}
-                className="flex-1 flex items-center justify-between pr-4 group h-9"
+                className={`size-9 flex items-center justify-center rounded-lg transition-all border ${
+                  langOpen 
+                  ? 'bg-slate-blue/10 dark:bg-white/10 border-slate-blue/40 dark:border-white/40 text-ink dark:text-eggshell shadow-lg' 
+                  : 'bg-slate-blue/5 dark:bg-white/5 border-slate-blue/10 dark:border-white/10 text-slate-blue dark:text-denim hover:text-ink dark:hover:text-eggshell'
+                }`}
               >
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-blue dark:text-denim group-hover:text-ink dark:group-hover:text-eggshell transition-colors">Language</span>
-                <ChevronUp size={14} className={`transition-transform duration-300 opacity-30 ${langOpen ? 'rotate-180' : ''}`} />
-              </motion.button>
+                <Languages size={16} strokeWidth={2.5} />
+              </button>
+            </div>
+            <AnimatePresence>
+              {!isCollapsed && (
+                <motion.button 
+                  onClick={() => setLangOpen(!langOpen)}
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -5 }}
+
+                  className="flex-1 text-left pr-4"
+                >
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-blue dark:text-denim">
+                    Language
+                  </span>
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <AnimatePresence>
+            {langOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className={`absolute bottom-full left-4 mb-2 w-48 bg-white dark:bg-black border border-slate-blue/10 dark:border-white/10 rounded-xl shadow-2xl p-2 z-[60] max-h-60 overflow-y-auto ${isCollapsed ? 'left-16' : 'left-4'}`}
+              >
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-blue/40 dark:text-denim/40 px-3 py-2">Select Language</p>
+                {[
+                  { code: 'en', label: 'English' },
+                  { code: 'hi', label: 'Hindi' },
+                  { code: 'bn', label: 'Bengali' },
+                  { code: 'te', label: 'Telugu' },
+                  { code: 'mr', label: 'Marathi' },
+                  { code: 'ta', label: 'Tamil' },
+                  { code: 'ur', label: 'Urdu' },
+                  { code: 'gu', label: 'Gujarati' },
+                  { code: 'kn', label: 'Kannada' },
+                  { code: 'ml', label: 'Malayalam' },
+                  { code: 'or', label: 'Odia' },
+                  { code: 'pa', label: 'Punjabi' },
+                  { code: 'as', label: 'Assamese' },
+                  { code: 'mai', label: 'Maithili' },
+                  { code: 'sat', label: 'Santali' },
+                  { code: 'ks', label: 'Kashmiri' },
+                  { code: 'ne', label: 'Nepali' },
+                  { code: 'kok', label: 'Konkani' },
+                  { code: 'sd', label: 'Sindhi' },
+                  { code: 'doi', label: 'Dogri' },
+                  { code: 'mni', label: 'Manipuri' },
+                  { code: 'brx', label: 'Bodo' },
+                  { code: 'sa', label: 'Sanskrit' }
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      const value = `/en/${lang.code}`;
+                      document.cookie = `googtrans=${value}; path=/;`;
+                      window.location.reload();
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-bold text-ink dark:text-eggshell hover:bg-slate-blue/5 dark:hover:bg-white/5 rounded-lg transition-colors notranslate"
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </motion.div>
             )}
           </AnimatePresence>
         </div>

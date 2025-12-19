@@ -61,10 +61,10 @@ const ExamsPage: React.FC = () => {
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-blue/40 dark:text-denim/40">
                   {selectedExam.type}
                 </span>
-                <h2 className="text-5xl font-black tracking-tighter text-ink dark:text-eggshell">
+                <h2 className="text-5xl font-black tracking-tighter text-ink dark:text-eggshell notranslate">
                   {selectedExam.name}
                 </h2>
-                <p className="text-xl text-slate-blue dark:text-denim font-bold opacity-80">
+                <p className="text-xl text-slate-blue dark:text-denim font-bold opacity-80 notranslate">
                   {selectedExam.fullName}
                 </p>
              </div>
