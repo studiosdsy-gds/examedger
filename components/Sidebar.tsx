@@ -302,7 +302,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                   initial={{ opacity: 0, x: -5 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -5 }}
-
                   className="flex-1 text-left pr-4"
                 >
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-blue dark:text-denim">
@@ -350,9 +349,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     key={lang.code}
                     onClick={() => {
-                      const value = `/en/${lang.code}`;
-                      document.cookie = `googtrans=${value}; path=/;`;
-                      window.location.reload();
+                        if (lang.code === 'en') {
+                            window.location.reload();
+                        } else {
+                             window.location.href = `https://translate.google.com/translate?sl=en&tl=${lang.code}&u=${encodeURIComponent(window.location.href)}`;
+                        }
                     }}
                     className="w-full text-left px-3 py-2 text-xs font-bold text-ink dark:text-eggshell hover:bg-slate-blue/5 dark:hover:bg-white/5 rounded-lg transition-colors notranslate"
                   >
