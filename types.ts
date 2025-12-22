@@ -1,5 +1,5 @@
 
-export type ExamStatus = 'DONE' | 'POSTPONED' | 'UPCOMING';
+export type ExamStatus = 'DONE' | 'POSTPONED' | 'UPCOMING' | 'OPEN';
 
 export interface ExamDateInfo {
   registrationStart: string;
@@ -27,6 +27,13 @@ export interface ProminentLink {
   url: string;
 }
 
+export interface CommunityPost {
+  user: string;
+  role: string;
+  tip: string;
+  verified: boolean;
+}
+
 export interface Exam {
   id: string;
   name: string;
@@ -50,6 +57,7 @@ export interface Exam {
   guides: GuideLink[];
   news: NewsItem[];
   prominentLinks: ProminentLink[];
+  communityPosts: CommunityPost[];
 }
 
 export interface UserStats {

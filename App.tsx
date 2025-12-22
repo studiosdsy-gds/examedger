@@ -1,21 +1,61 @@
 
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Link, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import Dashboard from './pages/Dashboard';
 import ExamsPage from './pages/ExamsPage';
+import ExamDetailsPage from './pages/ExamDetailsPage';
+import CalendarPage from './pages/CalendarPage';
 import ToolPage from './pages/ToolPage';
 import AuthPage from './pages/AuthPage';
-import { AboutPage, ContactPage } from './pages/InfoPages';
+import { AboutPage, ContactPage, TermsPage, PrivacyPage } from './pages/InfoPages';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, LogOut, Moon, Sun, Languages } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { supabase } from './src/services/supabaseClient';
+import ChatWidget from './components/ChatWidget';
+import ProfilePage from './pages/ProfilePage';
+import GlobalLoader from './src/components/GlobalLoader';
+import MobileMenu from './components/MobileMenu';
+import { LoadingProvider, useLoading } from './src/context/LoadingContext';
 
-const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+// Wrapper to handle location-based effects if needed (like scroll restoration)
+const AppContent: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const isDashboard = location.pathname === '/';
+  const { isLoading, setIsLoading } = useLoading();
+
+  useEffect(() => {
+    // Initial Load Simulation
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Initialize Auth State
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+      if (event === 'SIGNED_OUT') {
+        navigate('/');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -35,44 +75,27 @@ const App: React.FC = () => {
     return () => { document.body.style.overflow = 'unset'; };
   }, [isMobileMenuOpen]);
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'auth': return <AuthPage onAuthComplete={() => { setIsLoggedIn(true); setActiveTab('dashboard'); }} />;
-      case 'dashboard': return <Dashboard isDarkMode={isDarkMode} isLoggedIn={isLoggedIn} onLogin={() => setActiveTab('auth')} setActiveTab={setActiveTab} />;
-      case 'exams': return <ExamsPage />;
-      case 'photostudio': return <ToolPage type="photo" />;
-      case 'pdftools': return <ToolPage type="pdf" />;
-      case 'guides': return (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] md:min-h-[70vh] text-center space-y-8 animate-in fade-in duration-300">
-          <div className="size-24 bg-slate-blue/10 dark:bg-white/5 rounded-huge flex items-center justify-center border border-slate-blue/10 dark:border-white/10">
-             <div className="text-4xl font-black text-slate-blue dark:text-denim">?</div>
-          </div>
-          <div className="max-w-2xl px-4">
-            <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tighter">Exam Strategy Guides</h2>
-            <p className="text-base md:text-lg text-slate-blue dark:text-denim/60 font-bold leading-relaxed">
-              Topper notes and syllabus breakdowns for 2026 sessions are currently under final review.
-            </p>
-          </div>
-        </div>
-      );
-      case 'currentaffairs': return (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] md:min-h-[70vh] text-center space-y-8 animate-in fade-in duration-300">
-           <div className="size-24 bg-slate-blue/10 dark:bg-white/5 rounded-huge flex items-center justify-center border border-slate-blue/10 dark:border-white/10">
-             <div className="text-4xl font-black text-slate-blue dark:text-denim">!</div>
-          </div>
-          <div className="max-w-2xl px-4">
-            <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tighter">Daily Briefing</h2>
-            <p className="text-base md:text-lg text-slate-blue dark:text-denim/60 font-bold leading-relaxed">
-              Your 5-minute news briefing for UPSC and Banking. Live updates starting Monday.
-            </p>
-          </div>
-        </div>
-      );
-      case 'about': return <AboutPage />;
-      case 'contact': return <ContactPage />;
-      default: return <Dashboard isDarkMode={isDarkMode} isLoggedIn={isLoggedIn} onLogin={() => setActiveTab('auth')} setActiveTab={setActiveTab} />;
+  // Handle back button closing mobile menu
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      window.history.pushState(null, '');
+      const handlePopState = () => setIsMobileMenuOpen(false);
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        // Clean up history if visual close happened (optional, complex to get right without double-back)
+      };
     }
-  };
+  }, [isMobileMenuOpen]);
+
+  // Scroll to top on route change & Trigger Global Loader
+  useEffect(() => {
+    document.querySelector('main')?.scrollTo(0, 0);
+    setIsLoading(true);
+    // Turn off immediately so context handles the minimum duration timer.
+    // If the new page needs to load data, it should call setIsLoading(true) on mount.
+    setIsLoading(false);
+  }, [location.pathname]);
 
   return (
     <div className="fixed inset-0 h-[100dvh] w-screen overflow-hidden flex bg-eggshell dark:bg-ink transition-colors duration-300 font-body">
@@ -84,123 +107,126 @@ const App: React.FC = () => {
         ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.4); }
         .dark ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
       `}</style>
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block">
-        <Sidebar 
-          activeTab={activeTab === 'auth' ? '' : activeTab} 
-          setActiveTab={setActiveTab} 
-          isDarkMode={isDarkMode}
-          toggleTheme={() => setIsDarkMode(!isDarkMode)}
-          isLoggedIn={isLoggedIn}
-          onLoginToggle={() => isLoggedIn ? setIsLoggedIn(false) : setActiveTab('auth')}
-          isCollapsed={isSidebarCollapsed}
-          setIsCollapsed={setIsSidebarCollapsed}
-        />
-      </div>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] md:hidden flex flex-col justify-end"
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="bg-white dark:bg-space rounded-t-3xl p-8 pb-32 space-y-6 max-h-[90vh] overflow-y-auto"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-2xl font-black text-ink dark:text-eggshell">Menu</h3>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-slate-blue/10 rounded-full text-ink dark:text-eggshell">
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                 {[
-                   { id: 'guides', label: 'Guides' },
-                   { id: 'currentaffairs', label: 'Current Affairs' },
-                   { id: 'about', label: 'About Us' },
-                   { id: 'contact', label: 'Contact Us' }
-                 ].map(item => (
-                   <button 
-                     key={item.id}
-                     onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
-                     className="w-full text-left p-4 bg-slate-blue/5 dark:bg-white/5 rounded-xl text-ink dark:text-eggshell font-black uppercase tracking-widest text-sm"
-                   >
-                     {item.label}
-                   </button>
-                 ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                 <button 
-                   onClick={() => setIsDarkMode(!isDarkMode)}
-                   className="p-4 bg-slate-blue/5 dark:bg-white/5 rounded-xl flex flex-col items-center gap-2 text-slate-blue dark:text-denim"
-                 >
-                   {isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
-                   <span className="text-[10px] font-black uppercase tracking-widest">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
-                 </button>
-                 <button className="p-4 bg-slate-blue/5 dark:bg-white/5 rounded-xl flex flex-col items-center gap-2 text-slate-blue dark:text-denim">
-                   <Languages size={24} />
-                   <span className="text-[10px] font-black uppercase tracking-widest">Language</span>
-                 </button>
-              </div>
-
-              <button 
-                onClick={() => { isLoggedIn ? setIsLoggedIn(false) : setActiveTab('auth'); setIsMobileMenuOpen(false); }}
-                className={`w-full p-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 ${isLoggedIn ? 'bg-red-50 text-red-600' : 'bg-ink dark:bg-eggshell text-eggshell dark:text-ink'}`}
-              >
-                {isLoggedIn ? <><LogOut size={16} /> Logout</> : 'Login'}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       
-      <main className={`flex-1 h-full overflow-y-auto scroll-smooth transition-all duration-300 ease-in-out ml-0 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
-        {/* Mobile Header */}
-        <div className="md:hidden pt-8 px-6 pb-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-             <img src="logo1.png" alt="Logo" className="size-8 object-contain" />
-             <h1 className="text-lg font-display tracking-tight uppercase leading-none text-ink dark:text-eggshell">
-                ExamEdger <span className="text-slate-blue font-iceland">IN</span>
-             </h1>
-          </div>
-          <div className="size-8 rounded-full bg-slate-blue/10 dark:bg-white/10 flex items-center justify-center border border-slate-blue/20 dark:border-white/20">
-             <span className="text-xs font-black text-slate-blue dark:text-denim">{isLoggedIn ? 'KS' : 'G'}</span>
-          </div>
+      {!location.pathname.includes('/auth') && (
+        <div className="hidden md:block">
+          <Sidebar 
+            isDarkMode={isDarkMode}
+            toggleTheme={() => setIsDarkMode(!isDarkMode)}
+            isLoggedIn={isLoggedIn}
+            onLoginToggle={() => isLoggedIn ? supabase.auth.signOut() : navigate('/auth')}
+            isCollapsed={isSidebarCollapsed}
+            setIsCollapsed={setIsSidebarCollapsed}
+          />
         </div>
+      )}
+
+      {/* Mobile Menu & Global Loader */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)}
+        isLoggedIn={isLoggedIn}
+        onLogout={() => {
+            supabase.auth.signOut();
+            setIsLoggedIn(false);
+        }}
+        isDarkMode={isDarkMode}
+        toggleTheme={() => setIsDarkMode(!isDarkMode)}
+      />
+      <GlobalLoader isLoading={isLoading} />
+      
+      <main className={`flex-1 h-full overflow-y-auto scroll-smooth transition-all duration-300 ease-in-out ml-0 ${isSidebarCollapsed || location.pathname.includes('/auth') ? 'md:ml-20' : 'md:ml-64'} ${isChatOpen && isDashboard ? 'md:mr-[400px]' : ''}`}>
+        {!location.pathname.includes('/auth') && (
+            <div className="md:hidden pt-8 px-6 pb-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <img src="/logo1.png" alt="Logo" className="size-8 object-contain" />
+                <h1 className="text-lg font-display tracking-tight uppercase leading-none text-ink dark:text-eggshell">
+                    ExamEdger <span className="text-slate-blue font-iceland">IN</span>
+                </h1>
+            </div>
+            <button 
+                onClick={() => navigate(isLoggedIn ? '/profile' : '/auth')}
+                className="size-8 rounded-full bg-slate-blue/10 dark:bg-white/10 flex items-center justify-center border border-slate-blue/20 dark:border-white/20 active:scale-95 transition-transform"
+            >
+                <span className="text-xs font-black text-slate-blue dark:text-denim">{isLoggedIn ? 'ME' : 'G'}</span>
+            </button>
+            </div>
+        )}
 
         <div className="p-6 md:p-12 pb-24 md:pb-12 max-w-[1440px] mx-auto">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25, ease: "easeInOut" }}
-            >
-              {renderContent()}
-            </motion.div>
+             {/* AnimatePresence transition key */}
+             <Routes location={location} key={location.pathname}>
+                <Route path="/" element={<Dashboard isDarkMode={isDarkMode} isLoggedIn={isLoggedIn} onLogin={() => {}} setActiveTab={() => {}} />} />
+                <Route path="/calendar" element={<CalendarPage isDarkMode={isDarkMode} isLoggedIn={isLoggedIn} onLoginRequest={() => {}} />} />
+                <Route path="/exams" element={<ExamsPage />} />
+                <Route path="/exams/:examId" element={<ExamDetailsPage />} />
+                <Route path="/studio" element={<ToolPage type="photo" />} />
+                <Route path="/pdf-tools" element={<ToolPage type="pdf" />} />
+                <Route path="/guides" element={
+                    <div className="flex flex-col items-center justify-center min-h-[50vh] md:min-h-[70vh] text-center space-y-8 animate-in fade-in duration-300">
+                    <div className="size-24 bg-slate-blue/10 dark:bg-white/5 rounded-huge flex items-center justify-center border border-slate-blue/10 dark:border-white/10">
+                        <div className="text-4xl font-black text-slate-blue dark:text-denim">?</div>
+                    </div>
+                    <div className="max-w-2xl px-4">
+                        <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tighter">Exam Strategy Guides</h2>
+                        <p className="text-base md:text-lg text-slate-blue dark:text-denim/60 font-bold leading-relaxed">
+                        Topper notes and syllabus breakdowns for 2026 sessions are currently under final review.
+                        </p>
+                    </div>
+                    </div>
+                } />
+                <Route path="/current-affairs" element={
+                     <div className="flex flex-col items-center justify-center min-h-[50vh] md:min-h-[70vh] text-center space-y-8 animate-in fade-in duration-300">
+                     <div className="size-24 bg-slate-blue/10 dark:bg-white/5 rounded-huge flex items-center justify-center border border-slate-blue/10 dark:border-white/10">
+                       <div className="text-4xl font-black text-slate-blue dark:text-denim">!</div>
+                    </div>
+                    <div className="max-w-2xl px-4">
+                      <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tighter">Daily Briefing</h2>
+                      <p className="text-base md:text-lg text-slate-blue dark:text-denim/60 font-bold leading-relaxed">
+                        Your 5-minute news briefing for UPSC and Banking. Live updates starting Monday.
+                      </p>
+                    </div>
+                  </div>
+                } />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/auth" element={<AuthPage onAuthComplete={() => { /* Navigate handled by auth listener */ }} />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+             </Routes>
           </AnimatePresence>
         </div>
       </main>
 
-      <MobileNav 
-        activeTab={activeTab === 'auth' ? '' : activeTab}
-        setActiveTab={setActiveTab}
-        onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-      />
+      {!location.pathname.includes('/auth') && (
+        <MobileNav 
+            onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onChatToggle={() => setIsChatOpen(prev => !prev)}
+        />
+      )}
+      
+      {!location.pathname.includes('/auth') && (
+        <ChatWidget 
+            isOpen={isChatOpen} 
+            onToggle={setIsChatOpen} 
+            isDashboard={isDashboard} 
+        />
+      )}
     </div>
   );
+};
+
+const App: React.FC = () => {
+    return (
+        <LoadingProvider>
+            <BrowserRouter>
+                <AppContent />
+            </BrowserRouter>
+        </LoadingProvider>
+    );
 };
 
 export default App;

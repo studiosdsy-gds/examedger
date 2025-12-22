@@ -30,6 +30,7 @@ import {
   BarChart,
   Bar
 } from 'recharts';
+import MagicBento, { BentoCard } from '../components/MagicBento';
 
 interface DashboardProps {
   isLoggedIn: boolean;
@@ -61,9 +62,9 @@ const Dashboard: React.FC<DashboardProps> = ({ isLoggedIn, onLogin, setActiveTab
         <div>
           <h2 className="text-4xl font-black tracking-tighter flex items-center gap-4 text-ink dark:text-eggshell">
             Dashboard
-            <span className="text-[10px] font-black bg-slate-blue/10 dark:bg-white/5 px-3 py-1 rounded-full uppercase border border-slate-blue/20 dark:border-white/10 tracking-widest">
+            {/* <span className="text-[10px] font-black bg-slate-blue/10 dark:bg-white/5 px-3 py-1 rounded-full uppercase border border-slate-blue/20 dark:border-white/10 tracking-widest">
               v2.5 Pro
-            </span>
+            </span> */}
           </h2>
           <p className="text-slate-blue dark:text-denim mt-1 font-bold text-sm">Welcome back, your journey to success continues here.</p>
         </div>
@@ -87,49 +88,31 @@ const Dashboard: React.FC<DashboardProps> = ({ isLoggedIn, onLogin, setActiveTab
       </div>
 
       {activeSubTab === 'quick' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <MagicBento>
           <QuickCard 
             icon={<GraduationCap />}
             title="Explore Exams"
             desc="Browse details for over 50+ major national competitive examinations in India."
             action="Open Exams"
             onClick={() => setActiveTab('exams')}
+            enableStars={true}
+            className="order-1 md:order-none"
           />
 
           <QuickCard 
             icon={<FileCheck />}
-            title="PDF Optimizer"
+            title="PDF Tools"
             desc="Compress and resize your admit cards or certificates in seconds."
             action="Open Tools"
             onClick={() => setActiveTab('pdftools')}
+            className="order-2 md:order-none"
           />
 
-          <QuickCard 
-            icon={<Zap />}
-            title="Daily Flash"
-            desc="A 5-minute summary of all critical news for UPSC and Banking today."
-            action="Read Capsule"
+          <BentoCard 
+            className="bg-white dark:bg-space p-8 text-ink dark:text-eggshell rounded-huge relative overflow-hidden shadow-sm group border border-slate-blue/10 dark:border-white/5 flex flex-col justify-between transition-all hover:bg-card-hover min-h-[380px] order-5 md:order-none"
             onClick={() => setActiveTab('currentaffairs')}
-          />
-
-          <QuickCard 
-            icon={<Camera />}
-            title="Photo Studio"
-            desc="Perfect your passport photos for any official application form."
-            action="Launch"
-            onClick={() => setActiveTab('photostudio')}
-          />
-
-          <QuickCard 
-            icon={<BookOpen />}
-            title="Study Guides"
-            desc="Curated strategies and syllabus breakdown from toppers."
-            action="Explore"
-            onClick={() => setActiveTab('guides')}
-          />
-
-          {/* Daily Briefing Card - Styled as per screenshot */}
-          <div className="bg-white dark:bg-space p-8 text-ink dark:text-eggshell rounded-huge relative overflow-hidden shadow-sm group border border-slate-blue/10 dark:border-white/5 flex flex-col justify-between transition-all hover:bg-card-hover min-h-[380px]">
+            enableTilt={false}
+          >
             <div>
               <h3 className="text-2xl font-black mb-1 flex items-center gap-3">
                 <Megaphone size={24} className="text-slate-blue" />
@@ -160,13 +143,32 @@ const Dashboard: React.FC<DashboardProps> = ({ isLoggedIn, onLogin, setActiveTab
               </div>
             </div>
             <button 
-              onClick={() => setActiveTab('currentaffairs')}
               className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-slate-blue hover:translate-x-1 transition-transform flex items-center gap-2"
             >
               READ ALL <ArrowRight size={14} />
             </button>
-          </div>
-        </div>
+          </BentoCard>
+
+          <QuickCard 
+            icon={<Zap />}
+            title="Daily Flash"
+            desc="A 5-minute summary of all critical news for UPSC and Banking today."
+            action="Read Capsule"
+            onClick={() => setActiveTab('currentaffairs')}
+            className="order-4 md:order-none"
+          />
+
+          <QuickCard 
+            icon={<Camera />}
+            title="Photo Studio"
+            desc="Perfect your passport photos for any official application form."
+            action="Launch"
+            onClick={() => setActiveTab('photostudio')}
+            className="order-3 md:order-none"
+          />
+
+
+        </MagicBento>
       ) : (
         <div className="min-h-[60vh]">
           {!isLoggedIn ? (
@@ -233,21 +235,25 @@ const Dashboard: React.FC<DashboardProps> = ({ isLoggedIn, onLogin, setActiveTab
   );
 };
 
-const QuickCard = ({ icon, title, desc, action, onClick }: any) => (
-  <button onClick={onClick} className="p-8 text-left rounded-huge border border-slate-blue/10 dark:border-white/5 bg-white dark:bg-space flex flex-col justify-between group hover:bg-card-hover transition-all min-h-[380px]">
+const QuickCard = ({ icon, title, desc, action, onClick, enableStars, className }: any) => (
+  <BentoCard 
+    onClick={onClick} 
+    className={`bg-white dark:bg-space p-8 text-left rounded-huge border border-slate-blue/10 dark:border-white/5 flex flex-col justify-between group hover:bg-card-hover transition-all min-h-[380px] ${className || ''}`}
+    enableStars={enableStars}
+  >
     <div>
-      <div className="size-11 bg-slate-blue/5 dark:bg-white/5 rounded-lg flex items-center justify-center mb-6 group-hover:bg-slate-blue group-hover:text-white transition-colors duration-200 border border-slate-blue/10 dark:border-white/10">
+      <div className="size-11 bg-slate-blue/5 dark:bg-white/5 rounded-lg flex items-center justify-center mb-6 group-hover:bg-slate-blue group-hover:text-white transition-colors duration-200 border border-slate-blue/10 dark:border-white/10 relative z-10">
         {React.cloneElement(icon, { size: 20, strokeWidth: 2.5 })}
       </div>
-      <h3 className="text-2xl font-black mb-3 text-ink dark:text-eggshell tracking-tight">
+      <h3 className="text-2xl font-black mb-3 text-ink dark:text-eggshell tracking-tight relative z-10">
         {title}
       </h3>
-      <p className="text-xs text-slate-blue dark:text-denim/60 font-bold leading-relaxed">{desc}</p>
+      <p className="text-xs text-slate-blue dark:text-denim/60 font-bold leading-relaxed relative z-10">{desc}</p>
     </div>
-    <div className="mt-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-blue group-hover:translate-x-1 transition-transform">
+    <div className="mt-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-blue group-hover:translate-x-1 transition-transform relative z-10">
       {action} <ArrowRight size={14} strokeWidth={3} />
     </div>
-  </button>
+  </BentoCard>
 );
 
 const StatSmall = ({ label, val, icon, trend }: any) => (

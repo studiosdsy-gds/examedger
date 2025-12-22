@@ -1,0 +1,143 @@
+
+-- Enable Extensions
+create extension if not exists "uuid-ossp";
+
+-- PROFILES TABLE
+-- Securely stores user profile data, synced with auth.users
+create table if not exists profiles (
+  id uuid references auth.users on delete cascade not null primary key,
+  email text,
+  edge_id text unique,
+  full_name text,
+  avatar_url text,
+  storage_opt_in boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- RLS for Profiles
+alter table profiles enable row level security;
+drop policy if exists "Public profiles are viewable by everyone." on profiles;
+create policy "Public profiles are viewable by everyone." on profiles for select using (true);
+drop policy if exists "Users can insert their own profile." on profiles;
+create policy "Users can insert their own profile." on profiles for insert with check (auth.uid() = id);
+drop policy if exists "Users can update own profile." on profiles;
+create policy "Users can update own profile." on profiles for update using (auth.uid() = id);
+
+-- TRIGGER: Auto-create profile on Signup
+-- This ensures every new user (Google/Discord/Email) has a row in 'profiles'
+create or replace function public.handle_new_user() 
+returns trigger as $$
+declare
+  new_edge_id text;
+begin
+  -- Generate unique EDGE-ID (Simple random for now, could loop for uniqueness in prod)
+  new_edge_id := 'EDGE-' || floor(random() * (999999 - 100000 + 1) + 100000)::text;
+  
+  insert into public.profiles (id, email, edge_id, full_name, avatar_url)
+  values (
+    new.id, 
+    new.email, 
+    new_edge_id,
+    new.raw_user_meta_data->>'full_name', -- Can be null now
+    null -- Do NOT auto-fetch avatar from Google/Provider
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Drop trigger if exists to prevent error on re-run
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- ANALYTICS TABLE
+create table if not exists user_analytics (
+  user_id uuid references profiles(id) on delete cascade not null primary key,
+  tests_taken integer default 0,
+  points integer default 0,
+  exams_interested text[] default '{}',
+  weekly_activity jsonb default '[]'::jsonb, -- Store format: [{"day": "Mon", "hours": 2}, ...]
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- RLS for Analytics
+alter table user_analytics enable row level security;
+drop policy if exists "Users can view own analytics." on user_analytics;
+create policy "Users can view own analytics." on user_analytics for select using (auth.uid() = user_id);
+drop policy if exists "Users can update own analytics." on user_analytics;
+create policy "Users can update own analytics." on user_analytics for update using (auth.uid() = user_id);
+
+-- ASSETS TABLE (Photos/PDFs)
+create table if not exists user_assets (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  asset_type text check (asset_type in ('photo', 'pdf')),
+  storage_path text not null, -- Path in Supabase Storage bucket
+  display_name text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- RLS for Assets
+alter table user_assets enable row level security;
+drop policy if exists "Users can view own assets." on user_assets;
+create policy "Users can view own assets." on user_assets for select using (auth.uid() = user_id);
+drop policy if exists "Users can insert own assets." on user_assets;
+create policy "Users can insert own assets." on user_assets for insert with check (auth.uid() = user_id);
+drop policy if exists "Users can delete own assets." on user_assets;
+create policy "Users can delete own assets." on user_assets for delete using (auth.uid() = user_id);
+
+-- STORAGE BUCKETS (You must create these in Dashboard manually or via this SQL if allowed)
+insert into storage.buckets (id, name, public) values ('user-uploads', 'user-uploads', true)
+on conflict (id) do nothing;
+
+drop policy if exists "Authenticated users can upload assets" on storage.objects;
+create policy "Authenticated users can upload assets"
+on storage.objects for insert
+with check ( bucket_id = 'user-uploads' and auth.role() = 'authenticated' );
+
+drop policy if exists "Users can read own assets" on storage.objects;
+create policy "Users can read own assets"
+on storage.objects for select
+using ( bucket_id = 'user-uploads' and auth.uid() = owner );
+
+-- SECURE CHAT (Ephemeral)
+-- Stores encrypted chat logs. Content is Base64 ciphertext.
+-- Rows are deleted by the client on session end (Auto-Destruct).
+create table if not exists ephemeral_chats (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users not null,
+  session_id uuid not null, -- generated by client per tab/session
+  content_encrypted text not null, -- Base64 (IV + Ciphertext)
+  is_user_message boolean default true,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- RLS for Ephemeral Chats
+alter table ephemeral_chats enable row level security;
+
+-- Users can insert their own chats (both user and AI responses are pushed by client for now or just user?)
+-- Prompt says: "When the user sends a message, insert it...". 
+-- It also implies we store the *chat*, so likely AI responses too if we want history?
+-- "Create a 'decryptMessage' function to show the chat in the UI." -> implies reading from DB or local state?
+-- "On session start... DO NOT save this key to localStorage...".
+-- If we reload, key is lost. So History is lost on reload.
+-- So `ephemeral_chats` is only for... what? Syncing across tabs? Or just logging?
+-- Requirement: "No plain text must ever reach the network."
+-- Requirement: "Data is purged when you close this tab."
+-- So it seems it's for *intra-session* persistence or maybe just compliance/audit (encrypted)?
+-- Or maybe it IS the history storage.
+-- Anyhow, we need Insert and Select (for the current session, in case of... actually if key is RAM, reload kills it, so Select is useless on reload. Select is useful if we want to scroll back in the SAME session, but local state handles that).
+-- Maybe it's for multi-device? No, key is in RAM.
+-- So the DB storage seems to serve as a temporary "cloud state" for the current active session.
+
+drop policy if exists "Users can insert own chats." on ephemeral_chats;
+create policy "Users can insert own chats." on ephemeral_chats for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Users can view own chats." on ephemeral_chats;
+create policy "Users can view own chats." on ephemeral_chats for select using (auth.uid() = user_id);
+
+drop policy if exists "Users can delete own chats." on ephemeral_chats;
+create policy "Users can delete own chats." on ephemeral_chats for delete using (auth.uid() = user_id);
+
